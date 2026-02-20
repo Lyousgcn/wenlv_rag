@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+env/
+
+# Node
+frontend/node_modules/
+
+# Env files (重要：避免泄露密钥)
+backend/.env
+frontend/.env
+
+# Editor / system
+.idea/
+.vscode/
+.DS_Store
+
+# Runtime data
+backend/test.db
+data/mysql/
+data/milvus/

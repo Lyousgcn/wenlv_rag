@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: wenlv-app
+    depends_on:
+      - mysql
+      - milvus
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 12345678
+      MYSQL_DATABASE: innerQaSystem
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_DATABASE: itcast
+      MILVUS_COLLECTION: innerQA
+      QWEN_API_KEY: "sk-1dd009001f6a4b388dec36857e8f1c1a"
+      QWEN_MODEL: "qwen-max"
+      MAX_HISTORY_ROUNDS: 5
+      JWT_SECRET_KEY: "7e4f1a8cd39b4f228c3b69e571f94c20c56b2e87edc4aa398b2d6e4af3179d5"
+      JWT_ALGORITHM: "HS256"
+      ACCESS_TOKEN_EXPIRE_MINUTES: 120
+    ports:
+      - "80:8000"
+    volumes:
+      - ./data/backend_logs:/var/log/app
+
+  mysql:
+    image: mysql:8.0
+    container_name: wenlv-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: innerQaSystem
+    command:
+      [
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+        "--default-authentication-plugin=mysql_native_password"
+      ]
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.16
+    container_name: milvus-etcd
+    restart: always
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+      ETCD_HEARTBEAT_INTERVAL: "500"
+      ETCD_ELECTION_TIMEOUT: "2500"
+    volumes:
+      - ./data/milvus/etcd:/etcd
+    command:
+      [
+        "etcd",
+        "-advertise-client-urls=http://0.0.0.0:2379",
+        "-listen-client-urls=http://0.0.0.0:2379",
+        "-listen-peer-urls=http://0.0.0.0:2380",
+        "-initial-advertise-peer-urls=http://0.0.0.0:2380",
+        "-initial-cluster=etcd=http://0.0.0.0:2380",
+        "-data-dir=/etcd"
+      ]
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+    container_name: milvus-minio
+    restart: always
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: ["minio", "server", "/minio_data"]
+    volumes:
+      - ./data/milvus/minio:/minio_data
+
+  milvus:
+    image: milvusdb/milvus:v2.4.23
+    container_name: milvus
+    restart: always
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_USE_SSL: "false"
+      MILVUS_LOG_LEVEL: info
+    command: ["milvus", "run", "standalone"]
+    volumes:
+      - ./data/milvus/milvus:/milvus
