@@ -96,7 +96,7 @@ async def call_qwen_stream(
     }
     payload = {
         "model": settings.QWEN_MODEL,
-        "stream": True,
+        "stream": False,
         "messages": messages,
         "temperature": temperature,
         "top_p": top_p,
@@ -105,25 +105,18 @@ async def call_qwen_stream(
 
     async def stream_generator():
         async with httpx.AsyncClient(timeout=60.0) as client:
-            async with client.stream("POST", url, headers=headers, json=payload) as r:
-                async for line in r.aiter_lines():
-                    if not line:
-                        continue
-                    if line.startswith("data: "):
-                        data = line.removeprefix("data: ").strip()
-                        if data == "[DONE]":
-                            break
-                        try:
-                            obj = r.json_decoder(data)  # type: ignore[attr-defined]
-                        except Exception:
-                            continue
-                        delta = (
-                            obj.get("choices", [{}])[0]
-                            .get("delta", {})
-                            .get("content")
-                        )
-                        if delta:
-                            yield delta
+            r = await client.post(url, headers=headers, json=payload)
+            r.raise_for_status()
+            data = r.json()
+            choices = data.get("choices") or []
+            if not choices:
+                return
+            message = choices[0].get("message") or {}
+            content = message.get("content") or ""
+            if not isinstance(content, str):
+                return
+            for ch in content:
+                yield ch
 
     return stream_generator()
 
