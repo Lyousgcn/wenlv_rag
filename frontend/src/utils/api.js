@@ -22,9 +22,17 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    const status = error.response?.status;
     let message = "请求失败，请稍后重试";
     if (error.response?.data?.message) {
       message = error.response.data.message;
+    }
+    if (status === 401) {
+      const auth = useAuthStore();
+      auth.clearAuth();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(new Error(message));
   }
