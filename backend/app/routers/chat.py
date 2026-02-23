@@ -127,7 +127,9 @@ async def chat_stream(
                 yield f"data: {fallback}\n\n"
         finally:
             if not answer_parts:
-                answer_parts.append("暂无可用回答。")
+                default_text = "暂无可用回答。"
+                answer_parts.append(default_text)
+                yield f"data: {default_text}\n\n"
             full_answer = "".join(answer_parts)
             await save_chat_messages(db, session, payload.question, full_answer)
             yield "data: [DONE]\n\n"
