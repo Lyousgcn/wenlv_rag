@@ -9,9 +9,10 @@ export const useKnowledgeStore = defineStore("knowledge", () => {
 
   async function loadBases() {
     const res = await apiClient.get("/knowledge/bases");
-    if (res.code === 0) {
-      bases.value = res.data;
+    if (res.code !== 0) {
+      throw new Error(res.message || "获取知识库列表失败");
     }
+    bases.value = res.data;
   }
 
   async function createBase(name, description) {
@@ -19,9 +20,10 @@ export const useKnowledgeStore = defineStore("knowledge", () => {
       name,
       description
     });
-    if (res.code === 0) {
-      bases.value.push(res.data);
+    if (res.code !== 0) {
+      throw new Error(res.message || "创建知识库失败");
     }
+    bases.value.push(res.data);
   }
 
   async function deleteBase(id) {
@@ -47,4 +49,3 @@ export const useKnowledgeStore = defineStore("knowledge", () => {
     loadDocuments
   };
 });
-

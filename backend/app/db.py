@@ -22,8 +22,9 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def init_db() -> None:
-    """测试环境初始化数据库表结构"""
     async with engine.begin() as conn:
+        if settings.TESTING:
+            await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 

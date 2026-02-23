@@ -15,6 +15,7 @@
         />
       </div>
       <button class="btn-primary" @click="create">创建知识库</button>
+      <p v-if="error" class="error">{{ error }}</p>
     </div>
     <div class="card list-card">
       <h3>已创建知识库</h3>
@@ -61,13 +62,23 @@ const knowledge = useKnowledgeStore();
 const name = ref("");
 const description = ref("");
 const docs = ref([]);
+const error = ref("");
 const currentBaseName = ref("");
 
 async function create() {
-  if (!name.value) return;
-  await knowledge.createBase(name.value, description.value);
-  name.value = "";
-  description.value = "";
+  error.value = "";
+  if (!name.value) {
+    error.value = "请输入知识库名称";
+    return;
+  }
+  try {
+    await knowledge.createBase(name.value, description.value);
+    await knowledge.loadBases();
+    name.value = "";
+    description.value = "";
+  } catch (e) {
+    error.value = e.message || "创建知识库失败";
+  }
 }
 
 async function remove(id) {
@@ -107,6 +118,12 @@ label {
   display: block;
   margin-bottom: 4px;
   font-size: 14px;
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ff4d4f;
 }
 
 .list-card h3 {
@@ -168,4 +185,3 @@ label {
   color: #7b8ba8;
 }
 </style>
-
