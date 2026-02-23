@@ -120,7 +120,14 @@ async def chat_stream(
             async for token in llm_stream:
                 answer_parts.append(token)
                 yield f"data: {token}\n\n"
+        except Exception:
+            fallback = "对话服务暂时不可用，请稍后重试。"
+            if not answer_parts:
+                answer_parts.append(fallback)
+                yield f"data: {fallback}\n\n"
         finally:
+            if not answer_parts:
+                answer_parts.append("暂无可用回答。")
             full_answer = "".join(answer_parts)
             await save_chat_messages(db, session, payload.question, full_answer)
             yield "data: [DONE]\n\n"
